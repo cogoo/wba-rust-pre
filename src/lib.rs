@@ -1,5 +1,8 @@
+mod programs;
+
 #[cfg(test)]
 mod tests {
+    use crate::programs::wba_prereq::{CompleteArgs, UpdateArgs, WbaPrereqProgram};
     use bs58;
     use solana_client::rpc_client::RpcClient;
     use solana_program::{pubkey::Pubkey, system_instruction::transfer};
@@ -8,6 +11,7 @@ mod tests {
         message::Message,
         signature::{read_keypair_file, Keypair, Signer as SSigner},
         signer::Signer,
+        system_program,
         transaction::Transaction,
     };
     use std::io::{self, BufRead};
@@ -150,5 +154,42 @@ mod tests {
             "you can view the transaction here: https://explorer.solana.com/tx/{}/?cluster=devnet",
             signature
         );
+    }
+
+    #[test]
+    fn test_enroll() {
+        let rpc_client = RpcClient::new(RPC_URL);
+        let signer =
+            read_keypair_file("./wba-wallet.json").expect("failed to load keypair from file");
+
+        let prereq = WbaPrereqProgram::derive_program_address(&[
+            b"prereq",
+            signer.pubkey().to_bytes().as_ref(),
+        ]);
+
+        let args = CompleteArgs {
+            github: b"cogoo".to_vec(),
+        };
+
+        let blockhash = rpc_client
+            .get_latest_blockhash()
+            .expect("failed to get recent blockhash");
+
+        let transaction = WbaPrereqProgram::complete(
+            &[&signer.pubkey(), &prereq, &system_program::id()],
+            &args,
+            Some(&signer.pubkey()),
+            &[&signer],
+            blockhash,
+        );
+
+        let signature = rpc_client.send_and_confirm_transaction(&transaction);
+
+        match signature {
+            Ok(sig) => {
+                println!("Success! Check out your tx here: https://explorer.solana.com/tx/{}/?cluster=devnet", sig)
+            }
+            Err(_) => println!("failed to send transaction"),
+        };
     }
 }
