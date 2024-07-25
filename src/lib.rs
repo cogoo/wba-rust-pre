@@ -1,9 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use solana_sdk;
+    use solana_sdk::{self, signature::Keypair, signer::Signer};
 
     #[test]
-    fn keygen() {}
+    fn keygen() {
+        let kp = Keypair::new();
+        println!(
+            "You've generated a new Solana Wallet: {}",
+            kp.pubkey().to_string()
+        );
+        println!("");
+        println!("To save your wallet, copy and past the following into a JSON file:");
+        println!("{:?}", kp.to_bytes());
+    }
 
     #[test]
     fn airdrop() {}
